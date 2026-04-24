@@ -1,4 +1,4 @@
-<index.html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -66,6 +66,26 @@ body {
 .logo-text { font-weight: 700; font-size: 15px; }
 .logo-sub  { font-size: 11px; color: var(--text-muted); }
 .header-spacer { flex: 1; }
+
+/* Save status indicator */
+.save-status {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--text-muted);
+  padding: 5px 12px; border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.save-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+.save-status.saving .save-dot  { background: var(--orange); animation: pulse 1s infinite; }
+.save-status.saved  .save-dot  { background: var(--green); }
+.save-status.error  .save-dot  { background: var(--red); }
+.save-status.nosync .save-dot  { background: var(--text-muted); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
 .header-import-btn {
   display: inline-flex; align-items: center; gap: 6px;
   background: var(--accent); color: white; border: none;
@@ -74,6 +94,14 @@ body {
   cursor: pointer; transition: opacity .15s;
 }
 .header-import-btn:hover { opacity: .85; }
+
+.settings-btn {
+  width: 34px; height: 34px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--surface);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 16px; transition: all .15s;
+}
+.settings-btn:hover { border-color: var(--blue); }
 
 /* ── Brand nav ── */
 .brand-nav {
@@ -223,14 +251,13 @@ tr.summary-row td { border-top: 2px solid var(--border2); font-weight: 700; }
 
 .add-period-btn {
   display: inline-flex; align-items: center; gap: 6px;
-  background: var(--blue); color: white; border: none;
-  padding: 7px 14px; border-radius: var(--radius-sm);
-  font-family: inherit; font-size: 12px; font-weight: 600;
-  cursor: pointer; transition: opacity .15s;
+  color: white; border: none; padding: 7px 14px;
+  border-radius: var(--radius-sm); font-family: inherit;
+  font-size: 12px; font-weight: 600; cursor: pointer; transition: opacity .15s;
 }
 .add-period-btn:hover { opacity: .85; }
 
-/* ── Modal ── */
+/* ── Modals ── */
 .modal-overlay {
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,0.45); z-index: 1000;
@@ -240,7 +267,7 @@ tr.summary-row td { border-top: 2px solid var(--border2); font-weight: 700; }
 .modal {
   background: white; border-radius: var(--radius);
   padding: 28px; width: 480px; max-width: 95vw;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-lg); max-height: 90vh; overflow-y: auto;
 }
 .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
 .modal-desc  { font-size: 12px; color: var(--text-muted); margin-bottom: 22px; }
@@ -258,6 +285,7 @@ tr.summary-row td { border-top: 2px solid var(--border2); font-weight: 700; }
   box-shadow: 0 0 0 3px rgba(37,99,235,.1);
 }
 .form-input[readonly] { background: var(--surface); cursor: pointer; }
+.form-hint { font-size: 11px; color: var(--text-muted); margin-top: 5px; }
 
 /* Brand chips */
 .brand-chips { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -267,8 +295,7 @@ tr.summary-row td { border-top: 2px solid var(--border2); font-weight: 700; }
   font-family: inherit; font-size: 12px; font-weight: 600;
   cursor: pointer; transition: all .15s; color: var(--text-secondary);
 }
-.brand-chip:hover  { opacity: .85; }
-.brand-chip.sel    { color: white; }
+.brand-chip.sel { color: white; }
 
 .file-row { display: flex; gap: 8px; }
 .file-row .form-input { flex: 1; }
@@ -296,11 +323,49 @@ tr.summary-row td { border-top: 2px solid var(--border2); font-weight: 700; }
 .btn-confirm:hover  { opacity: .85; }
 .btn-confirm:disabled { opacity: .4; cursor: not-allowed; }
 
+/* Settings modal specific */
+.settings-section {
+  background: var(--surface); border-radius: var(--radius-sm);
+  padding: 16px; margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+.settings-section-title {
+  font-size: 12px; font-weight: 700; color: var(--text-secondary);
+  margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.connection-status {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 500; margin-bottom: 12px;
+  border: 1px solid var(--border);
+}
+.connection-status.connected    { background: var(--green-light); border-color: #bbf7d0; color: var(--green); }
+.connection-status.disconnected { background: var(--surface2);    color: var(--text-muted); }
+.connection-status.error        { background: var(--red-light);   border-color: #fecaca; color: var(--red); }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: #1a1d23; color: white;
+  padding: 12px 18px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500;
+  box-shadow: var(--shadow-lg); z-index: 9999;
+  transform: translateY(80px); opacity: 0;
+  transition: all .3s cubic-bezier(0.34,1.56,0.64,1);
+  display: flex; align-items: center; gap: 8px;
+  max-width: 360px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { background: var(--green); }
+.toast.error   { background: var(--red); }
+.toast.info    { background: var(--blue); }
+
 @media (max-width: 768px) {
   .main-wrap { padding: 12px; }
   .app-header { padding: 10px 14px; }
   .brand-nav  { padding: 0 14px; top: 58px; }
   .period-legend { display: none; }
+  .save-status span { display: none; }
 }
 </style>
 </head>
@@ -316,6 +381,11 @@ tr.summary-row td { border-top: 2px solid var(--border2); font-weight: 700; }
     </div>
   </div>
   <div class="header-spacer"></div>
+  <div class="save-status nosync" id="saveStatus">
+    <span class="save-dot"></span>
+    <span id="saveStatusText">未接続</span>
+  </div>
+  <button class="settings-btn" onclick="openSettings()" title="GitHub設定">⚙️</button>
   <button class="header-import-btn" onclick="openModal(null)">＋ データを追加</button>
 </header>
 
@@ -334,17 +404,15 @@ tr.summary-row td { border-top: 2px solid var(--border2); font-weight: 700; }
   <div id="tableArea"></div>
 </div>
 
-<!-- Modal -->
+<!-- Import Modal -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <div class="modal-title">＋ データを追加</div>
     <div class="modal-desc">期間・ブランド・ファイルを選択してインポートしてください</div>
-
     <div class="form-group">
       <label class="form-label">期間名 <span style="color:var(--red)">*</span></label>
       <input type="text" class="form-input" id="periodName" placeholder="例：2024年9月 プレメガ前">
     </div>
-
     <div class="form-group">
       <label class="form-label">期間タイプ <span style="color:var(--red)">*</span></label>
       <select class="form-select" id="periodType">
@@ -354,12 +422,10 @@ tr.summary-row td { border-top: 2px solid var(--border2); font-weight: 700; }
         <option value="custom">その他</option>
       </select>
     </div>
-
     <div class="form-group">
       <label class="form-label">ブランド <span style="color:var(--red)">*</span></label>
       <div class="brand-chips" id="brandChips"></div>
     </div>
-
     <div class="form-group">
       <label class="form-label">ファイル（Excel / CSV）<span style="color:var(--red)">*</span></label>
       <div class="file-row">
@@ -368,7 +434,6 @@ tr.summary-row td { border-top: 2px solid var(--border2); font-weight: 700; }
       </div>
       <input type="file" id="modalFileInput" accept=".xlsx,.xls,.csv" style="display:none">
     </div>
-
     <div class="modal-actions">
       <button class="btn-cancel"  onclick="closeModal()">キャンセル</button>
       <button class="btn-confirm" id="confirmBtn" onclick="confirmImport()" disabled>追加する</button>
@@ -376,63 +441,267 @@ tr.summary-row td { border-top: 2px solid var(--border2); font-weight: 700; }
   </div>
 </div>
 
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsOverlay">
+  <div class="modal">
+    <div class="modal-title">⚙️ GitHub 設定</div>
+    <div class="modal-desc">データをGitHubに自動保存するための設定です</div>
+
+    <div id="connectionStatusBox" class="connection-status disconnected">
+      <span>●</span><span id="connectionText">未接続 — 設定を入力してください</span>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-title">GitHub 接続情報</div>
+      <div class="form-group">
+        <label class="form-label">GitHubユーザー名</label>
+        <input type="text" class="form-input" id="ghUser" placeholder="例：yaya0820yaya">
+      </div>
+      <div class="form-group">
+        <label class="form-label">リポジトリ名</label>
+        <input type="text" class="form-input" id="ghRepo" placeholder="例：Qoo10-">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Personal Access Token（PAT）</label>
+        <input type="password" class="form-input" id="ghToken" placeholder="ghp_xxxxxxxxxxxx">
+        <div class="form-hint">⚠️ このトークンはあなたのブラウザにのみ保存されます。他の人には見えません。</div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeSettings()">キャンセル</button>
+      <button class="btn-confirm" onclick="saveSettings()">接続して保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // ══════════════════════════════════
-//  Config
+//  Constants
 // ══════════════════════════════════
 const BRANDS = ['MilleFée', 'fractionalCC', 'cosmedeli', 'TOKOTOYZ'];
-const BRAND_COLOR = {
-  'MilleFée':     '#e8336d',
-  'fractionalCC': '#2563eb',
-  'cosmedeli':    '#059669',
-  'TOKOTOYZ':     '#7c3aed',
-};
-const BRAND_EMOJI = {
-  'MilleFée':'🌸', 'fractionalCC':'💧', 'cosmedeli':'🌿', 'TOKOTOYZ':'⭐'
-};
-const TYPE_LABEL = {'pre-mega':'プレメガ前','post-mega':'プレメガ後','post-sale':'セール後','custom':'その他'};
-const TYPE_STYLE = {'pre-mega':'pre-mega-style','post-mega':'post-mega-style','post-sale':'post-sale-style','custom':'custom-style'};
-const TYPE_COLOR = {'pre-mega':'#7c3aed','post-mega':'#0891b2','post-sale':'#059669','custom':'#ea580c'};
+const BRAND_COLOR = { 'MilleFée':'#e8336d', 'fractionalCC':'#2563eb', 'cosmedeli':'#059669', 'TOKOTOYZ':'#7c3aed' };
+const BRAND_EMOJI = { 'MilleFée':'🌸', 'fractionalCC':'💧', 'cosmedeli':'🌿', 'TOKOTOYZ':'⭐' };
+const TYPE_LABEL  = { 'pre-mega':'プレメガ前', 'post-mega':'プレメガ後', 'post-sale':'セール後', 'custom':'その他' };
+const TYPE_STYLE  = { 'pre-mega':'pre-mega-style', 'post-mega':'post-mega-style', 'post-sale':'post-sale-style', 'custom':'custom-style' };
+const TYPE_COLOR  = { 'pre-mega':'#7c3aed', 'post-mega':'#0891b2', 'post-sale':'#059669', 'custom':'#ea580c' };
+const DATA_FILE   = 'kpi_data.json';  // file saved in GitHub repo
 
 // ══════════════════════════════════
 //  State
 // ══════════════════════════════════
-let periods     = [];   // [{id, name, type, brand, data:[{id,name,fav,cart}]}]
+let periods     = [];
 let activeBrand = 'MilleFée';
 let currentView = 'both';
 let modalFileData = null;
+let ghConfig    = { user: '', repo: '', token: '' };  // stored in localStorage (token only local)
+let saveTimer   = null;
 
 // ══════════════════════════════════
 //  Boot
 // ══════════════════════════════════
+loadLocalConfig();
 buildBrandChips();
 renderBrandNav();
 renderTableArea();
+if (ghConfig.user && ghConfig.repo && ghConfig.token) {
+  loadFromGitHub();
+}
 
 // ══════════════════════════════════
-//  Brand chips (modal, built once)
+//  LocalStorage config (token stays local, never uploaded)
+// ══════════════════════════════════
+function loadLocalConfig() {
+  try {
+    const c = JSON.parse(localStorage.getItem('qoo10_gh_config') || '{}');
+    ghConfig.user  = c.user  || '';
+    ghConfig.repo  = c.repo  || '';
+    ghConfig.token = c.token || '';
+  } catch(e) {}
+}
+
+function persistLocalConfig() {
+  localStorage.setItem('qoo10_gh_config', JSON.stringify({
+    user:  ghConfig.user,
+    repo:  ghConfig.repo,
+    token: ghConfig.token,
+  }));
+}
+
+// ══════════════════════════════════
+//  GitHub API
+// ══════════════════════════════════
+async function loadFromGitHub() {
+  if (!isConfigured()) return;
+  setSaveStatus('saving', '読み込み中...');
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/${DATA_FILE}`,
+      { headers: { Authorization: `token ${ghConfig.token}`, Accept: 'application/vnd.github.v3+json' } }
+    );
+    if (res.status === 404) {
+      setSaveStatus('saved', '接続済み（データなし）');
+      return;
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    const data = JSON.parse(atob(json.content.replace(/\n/g, '')));
+    periods = data.periods || [];
+    renderBrandNav();
+    renderTableArea();
+    setSaveStatus('saved', `最終同期: ${formatTime(new Date())}`);
+    showToast('✅ データを読み込みました', 'success');
+  } catch(e) {
+    setSaveStatus('error', '読み込み失敗');
+    showToast('❌ 読み込みに失敗しました: ' + e.message, 'error');
+  }
+}
+
+async function saveToGitHub() {
+  if (!isConfigured()) return;
+  setSaveStatus('saving', '保存中...');
+  try {
+    // Get current SHA (needed for update)
+    let sha = null;
+    const getRes = await fetch(
+      `https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/${DATA_FILE}`,
+      { headers: { Authorization: `token ${ghConfig.token}`, Accept: 'application/vnd.github.v3+json' } }
+    );
+    if (getRes.ok) {
+      const existing = await getRes.json();
+      sha = existing.sha;
+    }
+
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify({ periods }, null, 2))));
+    const body = {
+      message: `KPIデータ更新 ${new Date().toLocaleString('ja-JP')}`,
+      content,
+      ...(sha ? { sha } : {}),
+    };
+
+    const putRes = await fetch(
+      `https://api.github.com/repos/${ghConfig.user}/${ghConfig.repo}/contents/${DATA_FILE}`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: `token ${ghConfig.token}`,
+          Accept: 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      }
+    );
+    if (!putRes.ok) {
+      const err = await putRes.json();
+      throw new Error(err.message || `HTTP ${putRes.status}`);
+    }
+    setSaveStatus('saved', `最終保存: ${formatTime(new Date())}`);
+    showToast('✅ GitHubに保存しました', 'success');
+  } catch(e) {
+    setSaveStatus('error', '保存失敗');
+    showToast('❌ 保存に失敗しました: ' + e.message, 'error');
+  }
+}
+
+function scheduleSave() {
+  if (!isConfigured()) return;
+  clearTimeout(saveTimer);
+  setSaveStatus('saving', '保存待機中...');
+  saveTimer = setTimeout(() => saveToGitHub(), 2000);
+}
+
+function isConfigured() {
+  return ghConfig.user && ghConfig.repo && ghConfig.token;
+}
+
+// ══════════════════════════════════
+//  Save status UI
+// ══════════════════════════════════
+function setSaveStatus(state, text) {
+  const el = document.getElementById('saveStatus');
+  el.className = 'save-status ' + state;
+  document.getElementById('saveStatusText').textContent = text;
+}
+
+// ══════════════════════════════════
+//  Settings modal
+// ══════════════════════════════════
+function openSettings() {
+  document.getElementById('ghUser').value  = ghConfig.user;
+  document.getElementById('ghRepo').value  = ghConfig.repo;
+  document.getElementById('ghToken').value = ghConfig.token;
+  updateConnectionStatus();
+  document.getElementById('settingsOverlay').classList.add('show');
+}
+
+function closeSettings() {
+  document.getElementById('settingsOverlay').classList.remove('show');
+}
+
+function updateConnectionStatus() {
+  const box  = document.getElementById('connectionStatusBox');
+  const text = document.getElementById('connectionText');
+  if (isConfigured()) {
+    box.className  = 'connection-status connected';
+    text.textContent = `✓ 接続済み — ${ghConfig.user}/${ghConfig.repo}`;
+  } else {
+    box.className  = 'connection-status disconnected';
+    text.textContent = '未接続 — 設定を入力してください';
+  }
+}
+
+async function saveSettings() {
+  const user  = document.getElementById('ghUser').value.trim();
+  const repo  = document.getElementById('ghRepo').value.trim();
+  const token = document.getElementById('ghToken').value.trim();
+  if (!user || !repo || !token) { showToast('すべての項目を入力してください', 'error'); return; }
+
+  // Test connection
+  setSaveStatus('saving', '接続確認中...');
+  try {
+    const res = await fetch(`https://api.github.com/repos/${user}/${repo}`,
+      { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' } });
+    if (!res.ok) throw new Error(`リポジトリにアクセスできません (HTTP ${res.status})`);
+    ghConfig = { user, repo, token };
+    persistLocalConfig();
+    updateConnectionStatus();
+    closeSettings();
+    showToast('✅ GitHubに接続しました！', 'success');
+    // Load existing data
+    await loadFromGitHub();
+    // If we have local data, save it
+    if (periods.length > 0) scheduleSave();
+  } catch(e) {
+    setSaveStatus('error', '接続失敗');
+    showToast('❌ ' + e.message, 'error');
+  }
+}
+
+document.getElementById('settingsOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('settingsOverlay')) closeSettings();
+});
+
+// ══════════════════════════════════
+//  Brand chips
 // ══════════════════════════════════
 function buildBrandChips() {
-  const wrap = document.getElementById('brandChips');
-  wrap.innerHTML = BRANDS.map(b =>
-    `<button class="brand-chip" data-val="${b}"
-       style="--c:${BRAND_COLOR[b]}"
-       onclick="selectChip(this)">${BRAND_EMOJI[b]} ${b}</button>`
+  document.getElementById('brandChips').innerHTML = BRANDS.map(b =>
+    `<button class="brand-chip" data-val="${b}" onclick="selectChip(this)">${BRAND_EMOJI[b]} ${b}</button>`
   ).join('');
 }
 
 function selectChip(el) {
   document.querySelectorAll('.brand-chip').forEach(c => {
     c.classList.remove('sel');
-    c.style.background   = '#fff';
-    c.style.borderColor  = 'var(--border2)';
-    c.style.color        = 'var(--text-secondary)';
+    c.style.background = '#fff'; c.style.borderColor = 'var(--border2)'; c.style.color = 'var(--text-secondary)';
   });
   el.classList.add('sel');
-  el.style.background  = el.dataset.val ? BRAND_COLOR[el.dataset.val] : '#333';
-  el.style.borderColor = el.style.background;
-  el.style.color       = '#fff';
+  const col = BRAND_COLOR[el.dataset.val];
+  el.style.background = col; el.style.borderColor = col; el.style.color = '#fff';
   validateModal();
 }
 
@@ -440,29 +709,22 @@ function selectChip(el) {
 //  Brand nav
 // ══════════════════════════════════
 function renderBrandNav() {
-  const nav = document.getElementById('brandNav');
-  nav.innerHTML = BRANDS.map(b => {
+  document.getElementById('brandNav').innerHTML = BRANDS.map(b => {
     const cnt    = periods.filter(p => p.brand === b).length;
-    const active = activeBrand === b ? 'active' : '';
+    const active = activeBrand === b;
     const col    = BRAND_COLOR[b];
-    const style  = activeBrand === b
-      ? `border-color:${col};color:${col}`
-      : '';
-    const cntStyle = activeBrand === b ? `background:${col};color:white` : '';
-    return `<button class="brand-nav-tab ${active}" data-brand="${b}"
+    const style  = active ? `border-color:${col};color:${col}` : '';
+    const cntSt  = active ? `background:${col};color:white` : '';
+    return `<button class="brand-nav-tab ${active?'active':''}" data-brand="${b}"
       style="${style}" onclick="switchBrand('${b}')">
       <span class="brand-dot" style="background:${col}"></span>
       ${BRAND_EMOJI[b]} ${b}
-      <span class="tab-count" style="${cntStyle}">${cnt > 0 ? cnt + '期間' : '0'}</span>
+      <span class="tab-count" style="${cntSt}">${cnt > 0 ? cnt+'期間' : '0'}</span>
     </button>`;
   }).join('');
 }
 
-function switchBrand(b) {
-  activeBrand = b;
-  renderBrandNav();
-  renderTableArea();
-}
+function switchBrand(b) { activeBrand = b; renderBrandNav(); renderTableArea(); }
 
 // ══════════════════════════════════
 //  View toggle
@@ -470,8 +732,7 @@ function switchBrand(b) {
 function setView(v) {
   currentView = v;
   ['both','fav','cart'].forEach(x => {
-    const id = 'view' + x.charAt(0).toUpperCase() + x.slice(1);
-    document.getElementById(id).classList.toggle('active', x === v);
+    document.getElementById('view'+x.charAt(0).toUpperCase()+x.slice(1)).classList.toggle('active', x===v);
   });
   renderTableArea();
 }
@@ -482,21 +743,16 @@ function setView(v) {
 function renderTableArea() {
   const bp  = periods.filter(p => p.brand === activeBrand);
   const col = BRAND_COLOR[activeBrand];
-
-  // controls bar
   document.getElementById('controlsBar').style.display = periods.length ? 'flex' : 'none';
   renderLegend();
-
   const container = document.getElementById('tableArea');
   if (!bp.length) {
-    container.innerHTML = `
-      <div class="brand-empty">
-        <div class="brand-empty-icon">${BRAND_EMOJI[activeBrand]}</div>
-        <div class="brand-empty-title">${esc(activeBrand)} のデータがまだありません</div>
-        <div class="brand-empty-sub">Excel / CSV をインポートして、お気に入り・カートイン推移を記録しましょう</div>
-        <button class="brand-empty-btn" style="background:${col}"
-          onclick="openModal('${activeBrand}')">＋ ${esc(activeBrand)} のデータを追加</button>
-      </div>`;
+    container.innerHTML = `<div class="brand-empty">
+      <div class="brand-empty-icon">${BRAND_EMOJI[activeBrand]}</div>
+      <div class="brand-empty-title">${esc(activeBrand)} のデータがまだありません</div>
+      <div class="brand-empty-sub">Excel / CSV をインポートして、お気に入り・カートイン推移を記録しましょう</div>
+      <button class="brand-empty-btn" style="background:${col}" onclick="openModal('${activeBrand}')">＋ ${esc(activeBrand)} のデータを追加</button>
+    </div>`;
     return;
   }
 
@@ -505,19 +761,19 @@ function renderTableArea() {
   bp.forEach((period, pi) => {
     period.data.forEach(item => {
       const key = item.id || item.name;
-      if (!pMap.has(key)) pMap.set(key, { id: item.id, name: item.name, vals: new Array(bp.length).fill(null) });
-      pMap.get(key).vals[pi] = { fav: item.fav, cart: item.cart };
+      if (!pMap.has(key)) pMap.set(key, { id:item.id, name:item.name, vals:new Array(bp.length).fill(null) });
+      pMap.get(key).vals[pi] = { fav:item.fav, cart:item.cart };
     });
   });
-  const prods = [...pMap.values()].sort((a, b) => {
-    const la = a.vals.filter(Boolean).pop(), lb = b.vals.filter(Boolean).pop();
-    return (lb ? lb.fav : 0) - (la ? la.fav : 0);
+  const prods = [...pMap.values()].sort((a,b) => {
+    const la=a.vals.filter(Boolean).pop(), lb=b.vals.filter(Boolean).pop();
+    return (lb?lb.fav:0)-(la?la.fav:0);
   });
 
-  // thead row 1
+  // thead
   let h1 = `<tr><th class="col-product" rowspan="2"><div class="th-inner">商品</div></th>`;
-  bp.forEach((p, i) => {
-    const cols = currentView === 'both' ? 4 : 2;
+  bp.forEach((p,i) => {
+    const cols = currentView==='both'?4:2;
     h1 += `<th colspan="${cols}" class="period-group-th${i>0?' period-start':''}">
       <div class="period-group-inner">
         <span class="period-tag ${TYPE_STYLE[p.type]}">${TYPE_LABEL[p.type]}</span>
@@ -527,18 +783,17 @@ function renderTableArea() {
   });
   h1 += '</tr>';
 
-  // thead row 2
   let h2 = '<tr>';
-  bp.forEach((p, i) => {
-    const b = i > 0 ? ' period-start' : '';
-    if (currentView !== 'cart') {
+  bp.forEach((p,i) => {
+    const b = i>0?' period-start':'';
+    if (currentView!=='cart') {
       h2 += `<th class="${b}"><div class="th-inner">♥<br>お気に入り</div></th>`;
-      h2 += `<th><div class="th-inner">増減<br>${i > 0 ? '前期比' : '―'}</div></th>`;
+      h2 += `<th><div class="th-inner">増減<br>${i>0?'前期比':'―'}</div></th>`;
     }
-    if (currentView !== 'fav') {
-      const b2 = (currentView === 'cart' && i > 0) ? ' period-start' : '';
+    if (currentView!=='fav') {
+      const b2=(currentView==='cart'&&i>0)?' period-start':'';
       h2 += `<th class="${b2}"><div class="th-inner">🛒<br>カートイン</div></th>`;
-      h2 += `<th><div class="th-inner">増減<br>${i > 0 ? '前期比' : '―'}</div></th>`;
+      h2 += `<th><div class="th-inner">増減<br>${i>0?'前期比':'―'}</div></th>`;
     }
   });
   h2 += '</tr>';
@@ -548,21 +803,21 @@ function renderTableArea() {
   prods.forEach(prod => {
     tbody += `<tr><td class="col-product">
       <div class="product-name" title="${esc(prod.name)}">${esc(prod.name)}</div>
-      ${prod.id ? `<div class="product-id"># ${esc(prod.id)}</div>` : ''}
+      ${prod.id?`<div class="product-id"># ${esc(prod.id)}</div>`:''}
     </td>`;
-    prod.vals.forEach((cur, i) => {
-      const prev  = i > 0 ? prod.vals.slice(0, i).filter(Boolean).pop() : null;
-      const bdr   = i > 0 ? ' period-start' : '';
-      if (currentView !== 'cart') {
-        const f = cur ? cur.fav : null, pf = prev ? prev.fav : null;
-        tbody += `<td class="${bdr}">${f != null ? `<div class="metric-val">${f.toLocaleString()}</div>` : dash()}</td>`;
-        tbody += `<td>${renderDelta(f != null && pf != null ? f - pf : null)}</td>`;
+    prod.vals.forEach((cur,i) => {
+      const prev  = i>0?prod.vals.slice(0,i).filter(Boolean).pop():null;
+      const bdr   = i>0?' period-start':'';
+      if (currentView!=='cart') {
+        const f=cur?cur.fav:null, pf=prev?prev.fav:null;
+        tbody += `<td class="${bdr}">${f!=null?`<div class="metric-val">${f.toLocaleString()}</div>`:dash()}</td>`;
+        tbody += `<td>${renderDelta(f!=null&&pf!=null?f-pf:null)}</td>`;
       }
-      if (currentView !== 'fav') {
-        const c = cur ? cur.cart : null, pc = prev ? prev.cart : null;
-        const bdr2 = (currentView === 'cart' && i > 0) ? ' period-start' : '';
-        tbody += `<td class="${bdr2}">${c != null ? `<div class="metric-val">${c.toLocaleString()}</div>` : dash()}</td>`;
-        tbody += `<td>${renderDelta(c != null && pc != null ? c - pc : null)}</td>`;
+      if (currentView!=='fav') {
+        const c=cur?cur.cart:null, pc=prev?prev.cart:null;
+        const b2=(currentView==='cart'&&i>0)?' period-start':'';
+        tbody += `<td class="${b2}">${c!=null?`<div class="metric-val">${c.toLocaleString()}</div>`:dash()}</td>`;
+        tbody += `<td>${renderDelta(c!=null&&pc!=null?c-pc:null)}</td>`;
       }
     });
     tbody += '</tr>';
@@ -570,20 +825,20 @@ function renderTableArea() {
 
   // summary
   let sum = '<tr class="summary-row"><td class="col-product"><div class="product-name" style="font-weight:700">合計</div></td>';
-  bp.forEach((_, i) => {
-    const cur  = prods.map(p => p.vals[i]).filter(Boolean);
-    const prev = i > 0 ? prods.map(p => p.vals.slice(0,i).filter(Boolean).pop()).filter(Boolean) : [];
-    const sf = cur.reduce((s,v)=>s+v.fav,0),  pf = prev.reduce((s,v)=>s+v.fav,0);
-    const sc = cur.reduce((s,v)=>s+v.cart,0), pc = prev.reduce((s,v)=>s+v.cart,0);
-    const bdr = i > 0 ? ' period-start' : '';
-    if (currentView !== 'cart') {
+  bp.forEach((_,i) => {
+    const cur  = prods.map(p=>p.vals[i]).filter(Boolean);
+    const prev = i>0?prods.map(p=>p.vals.slice(0,i).filter(Boolean).pop()).filter(Boolean):[];
+    const sf=cur.reduce((s,v)=>s+v.fav,0),  pf=prev.reduce((s,v)=>s+v.fav,0);
+    const sc=cur.reduce((s,v)=>s+v.cart,0), pc=prev.reduce((s,v)=>s+v.cart,0);
+    const bdr=i>0?' period-start':'';
+    if (currentView!=='cart') {
       sum += `<td class="${bdr}"><div class="metric-val">${sf.toLocaleString()}</div></td>`;
-      sum += `<td>${i > 0 ? renderDelta(sf-pf) : dash()}</td>`;
+      sum += `<td>${i>0?renderDelta(sf-pf):dash()}</td>`;
     }
-    if (currentView !== 'fav') {
-      const bdr2 = (currentView==='cart'&&i>0) ? ' period-start' : '';
-      sum += `<td class="${bdr2}"><div class="metric-val">${sc.toLocaleString()}</div></td>`;
-      sum += `<td>${i > 0 ? renderDelta(sc-pc) : dash()}</td>`;
+    if (currentView!=='fav') {
+      const b2=(currentView==='cart'&&i>0)?' period-start':'';
+      sum += `<td class="${b2}"><div class="metric-val">${sc.toLocaleString()}</div></td>`;
+      sum += `<td>${i>0?renderDelta(sc-pc):dash()}</td>`;
     }
   });
   sum += '</tr>';
@@ -591,28 +846,18 @@ function renderTableArea() {
   container.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
       <span style="font-size:12px;color:var(--text-muted)">${prods.length}商品 ・ ${bp.length}期間</span>
-      <button class="add-period-btn" style="margin-left:auto;background:${col}"
-        onclick="openModal('${activeBrand}')">＋ 期間を追加</button>
+      <button class="add-period-btn" style="margin-left:auto;background:${col}" onclick="openModal('${activeBrand}')">＋ 期間を追加</button>
     </div>
     <div class="table-card">
       <div class="scroll-wrap">
-        <table>
-          <thead>${h1}${h2}</thead>
-          <tbody>${tbody}${sum}</tbody>
-        </table>
+        <table><thead>${h1}${h2}</thead><tbody>${tbody}${sum}</tbody></table>
       </div>
     </div>`;
 }
 
 function renderLegend() {
-  const seen = new Set();
-  let html = '';
-  periods.forEach(p => {
-    if (!seen.has(p.type)) {
-      seen.add(p.type);
-      html += `<div class="legend-item"><span class="legend-dot" style="background:${TYPE_COLOR[p.type]}"></span>${TYPE_LABEL[p.type]}</div>`;
-    }
-  });
+  const seen = new Set(); let html = '';
+  periods.forEach(p => { if(!seen.has(p.type)){seen.add(p.type);html+=`<div class="legend-item"><span class="legend-dot" style="background:${TYPE_COLOR[p.type]}"></span>${TYPE_LABEL[p.type]}</div>`;} });
   document.getElementById('periodLegend').innerHTML = html;
 }
 
@@ -620,15 +865,15 @@ function renderLegend() {
 //  Delete
 // ══════════════════════════════════
 function deletePeriod(pid) {
-  const p = periods.find(x => String(x.id) === String(pid));
+  const p = periods.find(x => String(x.id)===String(pid));
   if (!p || !confirm(`「${p.name}」を削除しますか？`)) return;
-  periods = periods.filter(x => x.id !== p.id);
-  renderBrandNav();
-  renderTableArea();
+  periods = periods.filter(x => x.id!==p.id);
+  renderBrandNav(); renderTableArea();
+  scheduleSave();
 }
 
 // ══════════════════════════════════
-//  Modal
+//  Import modal
 // ══════════════════════════════════
 function openModal(brand) {
   modalFileData = null;
@@ -636,63 +881,47 @@ function openModal(brand) {
   document.getElementById('periodType').value = 'pre-mega';
   document.getElementById('modalFileName').value = '';
   document.getElementById('confirmBtn').disabled = true;
-  // reset chips
   document.querySelectorAll('.brand-chip').forEach(c => {
-    c.classList.remove('sel');
-    c.style.background  = '#fff';
-    c.style.borderColor = 'var(--border2)';
-    c.style.color       = 'var(--text-secondary)';
+    c.classList.remove('sel'); c.style.background='#fff'; c.style.borderColor='var(--border2)'; c.style.color='var(--text-secondary)';
   });
-  // pre-select
-  if (brand) {
-    const chip = document.querySelector(`.brand-chip[data-val="${brand}"]`);
-    if (chip) selectChip(chip);
-  }
+  if (brand) { const chip = document.querySelector(`.brand-chip[data-val="${brand}"]`); if(chip) selectChip(chip); }
   document.getElementById('modalOverlay').classList.add('show');
 }
 
-function closeModal() {
-  document.getElementById('modalOverlay').classList.remove('show');
-  modalFileData = null;
-}
-
-function triggerFileInput() {
-  document.getElementById('modalFileInput').click();
-}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('show'); modalFileData=null; }
+function triggerFileInput() { document.getElementById('modalFileInput').click(); }
 
 document.getElementById('modalFileInput').addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (!file) return;
+  const file = e.target.files[0]; if(!file) return;
   document.getElementById('modalFileName').value = file.name;
   if (!document.getElementById('periodName').value)
-    document.getElementById('periodName').value = file.name.replace(/\.[^.]+$/, '');
-  readFile(file, rows => { modalFileData = rows; validateModal(); });
-  e.target.value = '';
+    document.getElementById('periodName').value = file.name.replace(/\.[^.]+$/,'');
+  readFile(file, rows => { modalFileData=rows; validateModal(); });
+  e.target.value='';
 });
 
 document.getElementById('periodName').addEventListener('input', validateModal);
 
 function validateModal() {
-  const name  = document.getElementById('periodName').value.trim();
-  const brand = document.querySelector('.brand-chip.sel');
-  document.getElementById('confirmBtn').disabled = !(name && brand && modalFileData);
+  const name=document.getElementById('periodName').value.trim();
+  const brand=document.querySelector('.brand-chip.sel');
+  document.getElementById('confirmBtn').disabled = !(name&&brand&&modalFileData);
 }
 
 function confirmImport() {
-  const name  = document.getElementById('periodName').value.trim();
-  const type  = document.getElementById('periodType').value;
-  const chip  = document.querySelector('.brand-chip.sel');
-  if (!name || !chip || !modalFileData) return;
-  periods.push({ id: Date.now(), name, type, brand: chip.dataset.val, data: modalFileData });
+  const name=document.getElementById('periodName').value.trim();
+  const type=document.getElementById('periodType').value;
+  const chip=document.querySelector('.brand-chip.sel');
+  if (!name||!chip||!modalFileData) return;
+  periods.push({ id:Date.now(), name, type, brand:chip.dataset.val, data:modalFileData });
   activeBrand = chip.dataset.val;
   closeModal();
-  renderBrandNav();
-  renderTableArea();
+  renderBrandNav(); renderTableArea();
+  scheduleSave();
 }
 
-// close on overlay click
 document.getElementById('modalOverlay').addEventListener('click', e => {
-  if (e.target === document.getElementById('modalOverlay')) closeModal();
+  if (e.target===document.getElementById('modalOverlay')) closeModal();
 });
 
 // ══════════════════════════════════
@@ -704,49 +933,45 @@ function readFile(file, cb) {
   reader.onload = e => {
     try {
       const wb = isCSV
-        ? XLSX.read(e.target.result, { type:'string', codepage:65001 })
-        : XLSX.read(new Uint8Array(e.target.result), { type:'array' });
+        ? XLSX.read(e.target.result, {type:'string',codepage:65001})
+        : XLSX.read(new Uint8Array(e.target.result), {type:'array'});
       const ws  = wb.Sheets[wb.SheetNames[0]];
-      const raw = XLSX.utils.sheet_to_json(ws, { defval:'' });
+      const raw = XLSX.utils.sheet_to_json(ws, {defval:''});
       cb(mapCols(raw));
-    } catch(err) {
-      alert('読み込みに失敗しました: ' + err.message); cb([]);
-    }
+    } catch(err) { alert('読み込みに失敗しました: '+err.message); cb([]); }
   };
   isCSV ? reader.readAsText(file,'UTF-8') : reader.readAsArrayBuffer(file);
 }
 
 function mapCols(rows) {
   if (!rows.length) return [];
-  const h    = Object.keys(rows[0]);
-  const find = (...ks) => h.find(c => ks.some(k => c.includes(k)));
-  const idC   = find('商品番号','product_id');
-  const nameC = find('商品名','product_name','name');
-  const favC  = find('お気に入り','favorites','fav');
-  const cartC = find('カート','cart');
+  const h=Object.keys(rows[0]);
+  const find=(...ks)=>h.find(c=>ks.some(k=>c.includes(k)));
+  const idC=find('商品番号','product_id'), nameC=find('商品名','product_name','name');
+  const favC=find('お気に入り','favorites','fav'), cartC=find('カート','cart');
   if (!nameC) return [];
-  return rows
-    .map(r => ({
-      id:   idC   ? String(r[idC]||'')  : '',
-      name: String(r[nameC]||''),
-      fav:  favC  ? (Number(r[favC])||0) : 0,
-      cart: cartC ? (Number(r[cartC])||0): 0,
-    }))
-    .filter(r => r.name);
+  return rows.map(r=>({ id:idC?String(r[idC]||''):'', name:String(r[nameC]||''), fav:favC?(Number(r[favC])||0):0, cart:cartC?(Number(r[cartC])||0):0 })).filter(r=>r.name);
 }
 
 // ══════════════════════════════════
 //  Helpers
 // ══════════════════════════════════
 function renderDelta(d) {
-  if (d === null) return `<span style="color:var(--text-muted);font-size:10px">—</span>`;
-  const cls   = d > 0 ? 'up' : d < 0 ? 'down' : 'neutral';
-  const arrow = d > 0 ? '▲' : d < 0 ? '▼' : '―';
+  if (d===null) return `<span style="color:var(--text-muted);font-size:10px">—</span>`;
+  const cls=d>0?'up':d<0?'down':'neutral', arrow=d>0?'▲':d<0?'▼':'―';
   return `<span class="delta ${cls}">${arrow} ${d>0?'+':''}${d.toLocaleString()}</span>`;
 }
 function dash() { return `<span style="color:var(--text-muted)">—</span>`; }
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function formatTime(d) { return d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}); }
+
+// Toast
+let toastTimer;
+function showToast(msg, type='info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `toast ${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
 }
 </script>
 </body>
