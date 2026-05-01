@@ -166,6 +166,33 @@ body {
 }
 .view-btn.active { background: #fff; color: var(--text-primary); box-shadow: var(--shadow-sm); }
 
+/* Sort button */
+.sort-select {
+  padding: 6px 10px; border: 1px solid var(--border2);
+  border-radius: var(--radius-sm); font-family: inherit;
+  font-size: 12px; color: var(--text-secondary);
+  background: #fff; cursor: pointer; transition: border-color .15s;
+}
+.sort-select:focus { outline: none; border-color: var(--blue); }
+
+/* Period visibility toggle */
+.period-toggle-bar {
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap; margin-bottom: 12px;
+}
+.period-vis-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 20px;
+  border: 2px solid var(--border2); background: #fff;
+  font-family: inherit; font-size: 11px; font-weight: 600;
+  cursor: pointer; transition: all .15s; color: var(--text-secondary);
+}
+.period-vis-btn.hidden {
+  background: var(--surface2); border-style: dashed;
+  opacity: .6;
+}
+.period-vis-label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+
 /* ── Empty state ── */
 .brand-empty {
   text-align: center; padding: 64px 24px;
@@ -409,12 +436,33 @@ tr.summary-row td { border-top: 2px solid var(--border2); font-weight: 700; }
 <nav class="brand-nav" id="brandNav"></nav>
 
 <div class="main-wrap">
-  <div class="controls-bar" id="controlsBar" style="display:none">
-    <div class="period-legend" id="periodLegend"></div>
-    <div class="view-toggle">
-      <button class="view-btn active" id="viewBoth"  onclick="setView('both')">♥ + 🛒 両方</button>
-      <button class="view-btn"        id="viewFav"   onclick="setView('fav')">♥ お気に入り</button>
-      <button class="view-btn"        id="viewCart"  onclick="setView('cart')">🛒 カートイン</button>
+  <div id="controlsBar" style="display:none">
+    <!-- Period visibility toggles -->
+    <div class="period-toggle-bar" id="periodToggleBar">
+      <span class="period-vis-label">📅 期間表示：</span>
+    </div>
+    <!-- Sort + View controls -->
+    <div class="controls-bar" style="margin-bottom:0">
+      <div class="period-legend" id="periodLegend"></div>
+      <select class="sort-select" id="sortSelect" onchange="onSortChange(this.value)">
+        <optgroup label="並べ替え（最新期間）">
+          <option value="fav_desc">♥ お気に入り 多い順</option>
+          <option value="fav_asc">♥ お気に入り 少ない順</option>
+          <option value="cart_desc">🛒 カートイン 多い順</option>
+          <option value="cart_asc">🛒 カートイン 少ない順</option>
+        </optgroup>
+        <optgroup label="並べ替え（増減）">
+          <option value="fav_delta_desc">♥ お気に入り 増加順</option>
+          <option value="fav_delta_asc">♥ お気に入り 減少順</option>
+          <option value="cart_delta_desc">🛒 カートイン 増加順</option>
+          <option value="cart_delta_asc">🛒 カートイン 減少順</option>
+        </optgroup>
+      </select>
+      <div class="view-toggle">
+        <button class="view-btn active" id="viewBoth"  onclick="setView('both')">♥ + 🛒 両方</button>
+        <button class="view-btn"        id="viewFav"   onclick="setView('fav')">♥ お気に入り</button>
+        <button class="view-btn"        id="viewCart"  onclick="setView('cart')">🛒 カートイン</button>
+      </div>
     </div>
   </div>
   <div id="tableArea"></div>
@@ -510,12 +558,14 @@ const DATA_FILE   = 'kpi_data.json';  // file saved in GitHub repo
 // ══════════════════════════════════
 //  State
 // ══════════════════════════════════
-let periods     = [];
-let activeBrand = 'MilleFée';
-let currentView = 'both';
+let periods       = [];
+let activeBrand   = 'MilleFée';
+let currentView   = 'both';
 let modalFileData = null;
-let ghConfig    = { user: '', repo: '', token: '' };  // stored in localStorage (token only local)
-let saveTimer   = null;
+let ghConfig      = { user: '', repo: '', token: '' };
+let saveTimer     = null;
+let sortState     = { key: 'fav', dir: 'desc' };
+let hiddenPeriods = new Set();
 
 // ══════════════════════════════════
 //  Boot
@@ -771,6 +821,7 @@ function renderTableArea() {
   const col = BRAND_COLOR[activeBrand];
   document.getElementById('controlsBar').style.display = periods.length ? 'flex' : 'none';
   renderLegend();
+  renderPeriodToggles();
   const container = document.getElementById('tableArea');
   if (!bp.length) {
     container.innerHTML = `<div class="brand-empty">
@@ -782,23 +833,38 @@ function renderTableArea() {
     return;
   }
 
+  // Filter out hidden periods
+  const visibleBp = bp.filter(p => !hiddenPeriods.has(String(p.id)));
+
   // Build product map
   const pMap = new Map();
-  bp.forEach((period, pi) => {
+  visibleBp.forEach((period, pi) => {
     period.data.forEach(item => {
       const key = item.id || item.name;
       if (!pMap.has(key)) pMap.set(key, { id:item.id, name:item.name, vals:new Array(bp.length).fill(null) });
       pMap.get(key).vals[pi] = { fav:item.fav, cart:item.cart };
     });
   });
+  // Apply sort
+  const visIdx = bp.map((_,i)=>i); // all visible indices
+  const lastVisIdx = visIdx[visIdx.length-1];
   const prods = [...pMap.values()].sort((a,b) => {
-    const la=a.vals.filter(Boolean).pop(), lb=b.vals.filter(Boolean).pop();
-    return (lb?lb.fav:0)-(la?la.fav:0);
+    const getVal = (prod, key) => {
+      const cur  = prod.vals[lastVisIdx];
+      const prev = lastVisIdx > 0 ? prod.vals.slice(0,lastVisIdx).filter(Boolean).pop() : null;
+      if (key === 'fav')        return cur ? cur.fav  : 0;
+      if (key === 'cart')       return cur ? cur.cart : 0;
+      if (key === 'fav_delta')  return (cur && prev) ? cur.fav  - prev.fav  : -Infinity;
+      if (key === 'cart_delta') return (cur && prev) ? cur.cart - prev.cart : -Infinity;
+      return 0;
+    };
+    const av = getVal(a, sortState.key), bv = getVal(b, sortState.key);
+    return sortState.dir === 'desc' ? bv - av : av - bv;
   });
 
   // thead
   let h1 = `<tr><th class="col-product" rowspan="2"><div class="th-inner">商品</div></th>`;
-  bp.forEach((p,i) => {
+  visibleBp.forEach((p,i) => {
     const cols = currentView==='both'?4:2;
     h1 += `<th colspan="${cols}" class="period-group-th${i>0?' period-start':''}">
       <div class="period-group-inner">
@@ -810,7 +876,7 @@ function renderTableArea() {
   h1 += '</tr>';
 
   let h2 = '<tr>';
-  bp.forEach((p,i) => {
+  visibleBp.forEach((p,i) => {
     const b = i>0?' period-start':'';
     if (currentView!=='cart') {
       h2 += `<th class="${b}"><div class="th-inner">♥<br>お気に入り</div></th>`;
@@ -851,7 +917,7 @@ function renderTableArea() {
 
   // summary
   let sum = '<tr class="summary-row"><td class="col-product"><div class="product-name" style="font-weight:700">合計</div></td>';
-  bp.forEach((_,i) => {
+  visibleBp.forEach((_,i) => {
     const cur  = prods.map(p=>p.vals[i]).filter(Boolean);
     const prev = i>0?prods.map(p=>p.vals.slice(0,i).filter(Boolean).pop()).filter(Boolean):[];
     const sf=cur.reduce((s,v)=>s+v.fav,0),  pf=prev.reduce((s,v)=>s+v.fav,0);
@@ -871,7 +937,7 @@ function renderTableArea() {
 
   container.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-      <span style="font-size:12px;color:var(--text-muted)">${prods.length}商品 ・ ${bp.length}期間</span>
+      <span style="font-size:12px;color:var(--text-muted)">${prods.length}商品 ・ ${visibleBp.length}期間（全${bp.length}期間）</span>
       <button class="add-period-btn" style="margin-left:auto;background:${col}" onclick="openModal('${activeBrand}')">＋ 期間を追加</button>
     </div>
     <div class="table-card">
@@ -879,6 +945,39 @@ function renderTableArea() {
         <table><thead>${h1}${h2}</thead><tbody>${tbody}${sum}</tbody></table>
       </div>
     </div>`;
+}
+
+function onSortChange(val) {
+  const parts = val.split('_');
+  // last part is dir (asc/desc), rest is key
+  const dir = parts[parts.length-1];
+  const key = parts.slice(0,-1).join('_');
+  sortState = { key, dir };
+  renderTableArea();
+}
+
+function togglePeriod(pid) {
+  const key = String(pid);
+  if (hiddenPeriods.has(key)) hiddenPeriods.delete(key);
+  else hiddenPeriods.add(key);
+  renderTableArea();
+}
+
+function renderPeriodToggles() {
+  const bar = document.getElementById('periodToggleBar');
+  const bp  = periods.filter(p => p.brand === activeBrand);
+  if (!bp.length) { bar.innerHTML = ''; return; }
+  const TYPE_COLOR_MAP = {'pre-mega':'#7c3aed','post-mega':'#0891b2','post-sale':'#059669','custom':'#ea580c'};
+  bar.innerHTML = '<span class="period-vis-label">📅 期間表示：</span>' +
+    bp.map(p => {
+      const hidden = hiddenPeriods.has(String(p.id));
+      const col    = TYPE_COLOR_MAP[p.type] || '#666';
+      const style  = hidden ? '' : `background:${col}15;border-color:${col};color:${col}`;
+      return `<button class="period-vis-btn ${hidden?'hidden':''}" style="${style}"
+        onclick="togglePeriod('${p.id}')">
+        ${hidden ? '☐' : '☑'} ${esc(p.name)}
+      </button>`;
+    }).join('');
 }
 
 function renderLegend() {
